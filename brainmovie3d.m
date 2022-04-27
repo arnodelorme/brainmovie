@@ -113,15 +113,14 @@
 % % activity at/between two components at 176 points per epoch (from -100 ms to 600 ms 
 % % re stimulus onset) assuming a 250-Hz sampling rate and 100 output frames
 %
-% >> [ersps{1,1},itcs{1,1},powbase,times,freqs] = ...                          % timef for
-%                timef(icaact(1,:),176,[-100 600],'Component
-%                1',250,1,32,100); %     1st comp
-% >> [ersps{2,1},itcs{2,1},powbase,times,freqs] = ...                          % timef for
-%                timef(icaact(2,:),176,[-100 600],'Component 2',250,1,32,100); %     2nd comp
-% >> [crossfs_amp{1,2},mcoh,times,freqs,cohboot,crossfs_phase{1,2}] = ...      % crossf for
-%      crossf_(icaact(1,:),icaact(2,:),176,[-100 600],'Crossf 1 and 2',250,1,32,100); % both
+% [ersps{1,1},itcs{1,1},powbase,times,freqs] = ...                          
+%                newtimef(EEG.icaact(1,:),EEG.pnts,[EEG.xmin EEG.xmax]*1000,EEG.srate); %     1st comp
+% [ersps{2,1},itcs{2,1},powbase,times,freqs] = ...                          
+%                newtimef(EEG.icaact(2,:),EEG.pnts,[EEG.xmin EEG.xmax]*1000,EEG.srate); %     2nd comp
+% [crossfs_amp{1,2},mcoh,times,freqs,cohboot,crossfs_phase{1,2}] = ...      % crossf for
+%      newcrossf(EEG.icaact(1,:),EEG.icaact(2,:),EEG.pnts,[EEG.xmin EEG.xmax]*1000,EEG.srate); % both
 %
-% >> brainmovie3d( ersps, itcs, crossfs_amp, crossfs_phase, times, [1:2] );
+% brainmovie3d( ersps, itcs, crossfs_amp, crossfs_phase, times, freqs, [1:2], 'coordinates', [ EEG.dipfit.model(1).posxyz; EEG.dipfit.model(2).posxyz ] );
 %
 % Author: Arnaud Delorme, SCCN, INC, UCSD, 30 Mai 2003
 %
@@ -138,29 +137,29 @@
 % but WITHOUT ANY WARRANTY; without even the implied warranty of
 % MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-function [alltimepoints mov] = brainmovie3d(ALLERSP,ALLITC,ALLCROSSF,ALLCROSSFANGLE,times,FREQS,selected,varargin);
+function [alltimepoints, mov] = brainmovie3d(ALLERSP,ALLITC,ALLCROSSF,ALLCROSSFANGLE,times,FREQS,selected,varargin);
     
 if nargin < 6
 	help brainmovie3d;
 	return;
-end;	
+end	
 
 % create structure for option if necessary
 %-----------------------------------------
-if ~isempty( varargin ), 
+if ~isempty( varargin )
 	for index=1:length(varargin)
 		if iscell(varargin{index})
 			varargin{index} = { varargin{index}};
-		end;
-	end;
+		end
+	end
 	g=struct(varargin{:}); 
 else 
 	g= []; 
-end;
+end
 
 if nargin < 7
 	selected = 1:size(ALLERSP, 1);
-end;
+end
 
 nbconditions = size(ALLERSP,2);
 nbcomponents = size(ALLERSP,1);
@@ -172,55 +171,55 @@ defmaxitc = 0;
 for i=1:length(ALLERSP)
     defmaxpow = max(defmaxpow, max(abs(ALLERSP{  i}(:))));
     defmaxitc = max(defmaxitc, max(abs(ALLITC{   i}(:))));
-end;    
+end    
 defmaxcoh = 0;
 for i=1:length(ALLCROSSF(:))
     tmpmax = max(abs(ALLCROSSF{i}(:)));
-    if ~isempty(tmpmax), defmaxcoh = max(defmaxcoh, tmpmax); end;
-end;
+    if ~isempty(tmpmax), defmaxcoh = max(defmaxcoh, tmpmax); end
+end
 defmaxpow = ceil(defmaxpow*100)/100;
 defmaxitc = ceil(defmaxitc*100)/100;
 defmaxcoh = ceil(defmaxcoh*100)/100;
-try, g.head; 			catch, g.head=''; end;
-try, g.visible; 		catch, g.visible='on'; end;
-try, g.square; 		    catch, g.square='on'; end;defmaxpow = ceil(defmaxpow*100)/100;
-try, g.moviename; 	    catch, g.moviename='output.avi'; end;
-try, g.movieopts; 	    catch, g.movieopts={}; end;
-try, g.rt; 	        	catch, g.rt={}; end;
-try, g.power; 	    	catch, g.power='on'; end;
-try, g.latency; 	   	catch, g.latency=[]; end;
-try, g.itc; 	    	catch, g.itc='on'; end;
-try, g.magnify; 	    catch, g.magnify=1; end;
-try, g.crossf; 			catch, g.crossf='on'; end;
-try, g.crossfcoh; 		catch, g.crossfcoh='on'; end;
-try, g.size; 			catch, g.size=[400 400]; end;
-try, g.crossfphasecolor;catch, g.crossfphasecolor='on'; end;
-try, g.crossfphasespeed;catch, g.crossfphasespeed='off'; end;
-try, g.crossfphaseunit; catch, g.crossfphaseunit='degree'; end;
-try, g.scalepower;      catch, g.scalepower = [-defmaxpow defmaxpow]; end;
-try, g.scalecoher;      catch, g.scalecoher = [0 defmaxcoh]; end;
-try, g.scaleitc;        catch, g.scaleitc = defmaxitc; end;
-try, g.diskscale;       catch, g.diskscale = 1; end;
-try, g.framefolder;     catch, g.framefolder = ''; end;
-try, g.envelope;        catch, g.envelope = []; end; 
-try, g.caption;			catch, g.caption = 'on'; end; 
-try, g.frames;			catch, g.frames = []; end; 
-try, g.envvert;			catch, g.envvert = {}; end; 
-try, g.flashes;			catch, g.flashes = []; end; 
-try, g.polarity;		catch, g.polarity = 'pos'; end; 
-try, g.framesout;	    catch, g.framesout = 'tiff'; end; 
-try, g.condtitle;		catch, g.condtitle = []; end; 
-try, g.condtitleformat;	catch, g.condtitleformat = {'fontsize', 14', 'fontweight', 'bold' }; end;
-try, g.title;			catch, g.title = []; end; 
-try, g.envylabel;		catch, g.envylabel = 'Potential \muV'; end; 
-try, g.plotorder;       catch, g.plotorder = selected; end;
-try, g.coordformat;     catch, g.coordformat = 'spherical'; end;
-try, g.stereo;          catch, g.stereo = []; end;
-try, g.backcolor;       catch, g.backcolor = [0 0 0]; end;
-try, g.path3d;          catch, g.path3d = 'off'; end;
-try, g.project3d;       catch, g.project3d = 'off'; end;
-try, g.view;            catch, g.view = [43.6650 30.4420]; end;
-try, g.colmapcoh;       catch, 
+try, g.head; 			catch, g.head=''; end
+try, g.visible; 		catch, g.visible='on'; end
+try, g.square; 		    catch, g.square='on'; enddefmaxpow = ceil(defmaxpow*100)/100;
+try, g.moviename; 	    catch, g.moviename='output.avi'; end
+try, g.movieopts; 	    catch, g.movieopts={}; end
+try, g.rt; 	        	catch, g.rt={}; end
+try, g.power; 	    	catch, g.power='on'; end
+try, g.latency; 	   	catch, g.latency=[]; end
+try, g.itc; 	    	catch, g.itc='on'; end
+try, g.magnify; 	    catch, g.magnify=1; end
+try, g.crossf; 			catch, g.crossf='on'; end
+try, g.crossfcoh; 		catch, g.crossfcoh='on'; end
+try, g.size; 			catch, g.size=[400 400]; end
+try, g.crossfphasecolor;catch, g.crossfphasecolor='on'; end
+try, g.crossfphasespeed;catch, g.crossfphasespeed='off'; end
+try, g.crossfphaseunit; catch, g.crossfphaseunit='degree'; end
+try, g.scalepower;      catch, g.scalepower = [-defmaxpow defmaxpow]; end
+try, g.scalecoher;      catch, g.scalecoher = [0 defmaxcoh]; end
+try, g.scaleitc;        catch, g.scaleitc = defmaxitc; end
+try, g.diskscale;       catch, g.diskscale = 1; end
+try, g.framefolder;     catch, g.framefolder = ''; end
+try, g.envelope;        catch, g.envelope = []; end 
+try, g.caption;			catch, g.caption = 'on'; end 
+try, g.frames;			catch, g.frames = []; end 
+try, g.envvert;			catch, g.envvert = {}; end 
+try, g.flashes;			catch, g.flashes = []; end 
+try, g.polarity;		catch, g.polarity = 'pos'; end 
+try, g.framesout;	    catch, g.framesout = 'none'; end 
+try, g.condtitle;		catch, g.condtitle = []; end 
+try, g.condtitleformat;	catch, g.condtitleformat = {'fontsize', 14', 'fontweight', 'bold' }; end
+try, g.title;			catch, g.title = []; end 
+try, g.envylabel;		catch, g.envylabel = 'Potential \muV'; end 
+try, g.plotorder;       catch, g.plotorder = selected; end
+try, g.coordformat;     catch, g.coordformat = 'spherical'; end
+try, g.stereo;          catch, g.stereo = []; end
+try, g.backcolor;       catch, g.backcolor = [0 0 0]; end
+try, g.path3d;          catch, g.path3d = 'off'; end
+try, g.project3d;       catch, g.project3d = 'off'; end
+try, g.view;            catch, g.view = [43.6650 30.4420]; end
+try, g.colmapcoh;       catch
     colormtmp = hot(64);
     colormtmp(end,3) = (colormtmp(end,3)+colormtmp(end-1,3))/2; % white does not come out when the
     g.colmapcoh = colormtmp;                                    % the figure is printed to ppm
@@ -229,22 +228,22 @@ try, g.colmapcoh;       catch,
     g.colmapcoh(:,3) =  colormtmp(:,1);
     g.colmapcoh = [ g.colmapcoh; colormtmp(end:-1:1,:)];
     g.colmapcoh = jet(64);
-end; 
-try, g.colmapcrossf; catch,
+end 
+try, g.colmapcrossf; catch
     g.colmapcrossf = jet(64);
 	%g.colmapcrossf = hsv(64); 
 	%g.colmapcrossf = [ g.colmapcrossf(55:end,:); 
 	%g.colmapcrossf(1:54,:)]; g.colmapcrossf = g.colmapcrossf(linspace(64, 1, 64),:); % reorganize the colormap
 	%g.colmapcrossf = hsv(64);
 	%g.colmapcrossf = [g.colmapcrossf(16:end,:); g.colmapcrossf(1:5,:)];
-end;
-try, g.xlimaxes; 		catch, g.xlimaxes = [-1 1]; end;  
-try, g.ylimaxes; 		catch, g.ylimaxes = [-1 1]; end;  
+end
+try, g.xlimaxes; 		catch, g.xlimaxes = [-1 1]; end  
+try, g.ylimaxes; 		catch, g.ylimaxes = [-1 1]; end  
 try, g.rthistloc; 	    catch, g.rthistloc(1) = (g.xlimaxes(2)-g.xlimaxes(1))*0.74 + g.xlimaxes(1); % abscicia
 	                           g.rthistloc(3) = (g.xlimaxes(2)-g.xlimaxes(1))*0.1; % width
 	                           g.rthistloc(2) = (g.ylimaxes(2)-g.ylimaxes(1))*0.34 + g.ylimaxes(1); % ordinate
 	                           g.rthistloc(4) = (g.ylimaxes(2)-g.ylimaxes(1))*0.1; % max height
-end;
+end
 try, g.coordinates; catch,    
     % coordinates around a circle
     g.coordinates = zeros( nbcomponents, 2 );
@@ -253,173 +252,174 @@ try, g.coordinates; catch,
     	if length(selected) > 1
    			g.coordinates( index,:) = [ cos(count/length(selected)*2*pi) sin(count/length(selected)*2*pi) ] * 0.7;
     	else	g.coordinates(index,:) = [ 0.01 0.01];
-		end;
+		end
 		count = count + 1;
-    end;
-end;
-try, g.circfactor; catch, g.circfactor = ones( nbcomponents, nbcomponents )*0.01; end;
-if isempty(g.circfactor), g.circfactor = ones( nbcomponents, nbcomponents )*0.01; end;
+    end
+end
+try, g.circfactor; catch, g.circfactor = ones( nbcomponents, nbcomponents )*0.01; end
+if isempty(g.circfactor), g.circfactor = ones( nbcomponents, nbcomponents )*0.01; end
 if isstr(g.path3d)
     switch g.path3d
      case 'on', g.path3d = [ 1 0.75];
      case 'off', g.path3d = [];
-    end;
+    end
 else
-    if length(g.path3d) ~= 2, error('path3d length have to be a string or a 2 element vector'); end;
-end;  
+    if length(g.path3d) ~= 2, error('path3d length have to be a string or a 2 element vector'); end
+end  
 
 % messages for defaults
 % ---------------------
-if g.scalepower(1) == -defmaxpow, fprintf('Power limits set to %1.2f to %1.2f dB\n', -defmaxpow, defmaxpow); end;
-if g.scaleitc(1)   ==  defmaxitc, fprintf('ITC limits set to 0 to %1.2f\n', defmaxitc); end;
-if g.scalecoher(2) ==  defmaxcoh, fprintf('Coherence limits set to 0 to %1.2f\n', defmaxcoh); end;
+if g.scalepower(1) == -defmaxpow, fprintf('Power limits set to %1.2f to %1.2f dB\n', -defmaxpow, defmaxpow); end
+if g.scaleitc(1)   ==  defmaxitc, fprintf('ITC limits set to 0 to %1.2f\n', defmaxitc); end
+if g.scalecoher(2) ==  defmaxcoh, fprintf('Coherence limits set to 0 to %1.2f\n', defmaxcoh); end
 
 % check size of inputs
 % --------------------
 try
 	if ~all(size(ALLERSP) == size(ALLITC))
 		disp('Error: ERSP and ITC cells array must be the same size'); return;
-	end;	
+	end	
 	if ~isempty(ALLCROSSF)
 		if ~all(size(ALLCROSSF) == size(ALLCROSSFANGLE))
 			disp('Error: Crossf amplitude and Crossf angle cells array must be the same size'); return;
-		end;	
+		end	
 		if ~(size(ALLCROSSF,2) == size(ALLERSP,1))
 			disp('Error: number of components different in ERSP and Crossf arrays'); return;
-		end;	
+		end	
 		if ~(size(ALLCROSSF,3) == size(ALLERSP,2))
 			disp('Error: number of conditions different in ERSP and Crossf arrays'); return;
-		end;	
+		end	
 		if ~(size(ALLCROSSF{1,2,1},1) == size(ALLERSP{1,1},1))
 			disp('Error: number of frequencies (rows) different in ERSP and Crossf arrays'); return;
-		end;	
+		end	
 		if ~(size(ALLCROSSFANGLE{1,2,1},2) == size(ALLITC{1,1},2))
 			disp('Error: number of time points (columns) different in ERSP and Crossf arrays'); return;
-		end;	
+		end	
 		if ~(size(ALLCROSSF{1,2,1},2) == length(times))
 			disp('Error: number of time points (columns) different in times and Crossf arrays'); return;
-		end;
-	end;
-	try, tmp = ALLERSP{1,1}; tmp(FREQS,:); catch, disp('Error: unable to access the defined frequencies in ERSPs (out of bounds) '); return; end;
-	try, ALLERSP{selected,1}; catch, disp('Error: unable to access the defined components in ERSPs (out of bounds)'); return; end;
+		end
+	end
+	try, tmp = ALLERSP{1,1}; tmp(FREQS,:); catch, disp('Error: unable to access the defined frequencies in ERSPs (out of bounds) '); return; end
+	try, ALLERSP{selected,1}; catch, disp('Error: unable to access the defined components in ERSPs (out of bounds)'); return; end
 catch
 	disp('Error accessing one of the variable. Remember: Except for selected, freqs, times and circfactor, all vars are cell arrays. Check also: dimensions and content.'); return;
-end;	 
+end	 
 
 % check structure content
 % -----------------------
 if ~isempty(g.rt)
 	if length(g.rt) ~= nbconditions
 		disp('Error: Rt must be either an array of the size of the number of conditions (might be 0 for some conditions)'); return;
-	end;
-end;	
+	end
+end	
 switch lower(g.visible)
-	case {'on', 'off'} ;  
+	case {'on', 'off'}  
 	otherwise disp('Error: Visibility must be either ''on'' or ''off'''); return;
-end;	
+end	
 switch lower(g.square)
-	case {'on', 'off'} ;  
+	case {'on', 'off'}  
 	otherwise disp('Error: Square must be either ''on'' or ''off'''); return;
-end;	
+end	
 switch lower(g.power)
-	case {'on', 'off'} ;  
+	case {'on', 'off'}  
 	otherwise disp('Error: Power must be either ''on'' or ''off'''); return;
-end;	
+end	
 switch lower(g.itc)
-	case {'on', 'off'} ;  
+	case {'on', 'off'}  
 	otherwise disp('Error: Itc must be either ''on'' or ''off'''); return;
-end;	
+end	
 switch lower(g.crossf)
-	case {'on', 'off'} ;  
+	case {'on', 'off'}  
 	otherwise disp('Error: Crossf must be either ''on'' or ''off'''); return;
-end;	
+end	
 switch lower(g.crossfcoh)
-	case {'on', 'off'} ;  
+	case {'on', 'off'}  
 	otherwise disp('Error: Crossfcoh must be either ''on'' or ''off'''); return;
-end;	
+end	
 switch lower(g.crossfphasecolor)
-	case {'on', 'off'} ;  
+	case {'on', 'off'}  
 	otherwise disp('Error: Crossfphasecolor must be either ''on'' or ''off'''); return;
-end;	
+end	
 switch lower(g.crossfphasespeed)
-	case {'on', 'off'} ;  
+	case {'on', 'off'}  
 	otherwise disp('Error: Crossfphasespeed must be either ''on'' or ''off'''); return;
-end;
+end
 switch lower(g.crossfphaseunit)
-	case {'degree', 'radian'} ;  
+	case {'degree', 'radian'}  
 	otherwise disp('Error: Crossfphaseunit must be either ''degree'' or ''radian'''); return;
-end;
+end
 switch lower(g.caption)
-	case {'on', 'off'} ;  
+	case {'on', 'off'}  
 	otherwise disp('Error: Caption must be either ''on'' or ''off'''); return;
-end;
+end
 switch lower(g.polarity)
-	case {'pos', 'posneg'} ;  
+	case {'pos', 'posneg'}  
 	otherwise disp('Error: Polarity must be either ''pos'' or ''posneg'''); return;
-end;
-if ~isempty(g.envvert),
-    if ~iscell(g.envvert) & ~( isstruct(g.envvert{1}) | isnumeric(g.envvert{1}) )
+end
+if ~isempty(g.envvert)
+    if ~iscell(g.envvert) && ~( isstruct(g.envvert{1}) || isnumeric(g.envvert{1}) )
         disp('Error: Invalid type for Envvert.'); return;
     end
 end
-if ~isempty(g.latency) & ~isnumeric(g.latency)
+if ~isempty(g.latency) && ~isnumeric(g.latency)
 	disp('Error: Latency must be a vector'); return;
-end;	
+end	
 if length(g.scalepower) ~= 2
 	disp('Error: Scalepower must be a 2-element array'); return;
-end;
+end
 if length(g.scalecoher) ~= 2
 	disp('Error: Scalecoher must be a 2-element array'); return;
-end;
-if (length(g.diskscale) ~= 1 | g.diskscale < 0)
+end
+if (length(g.diskscale) ~= 1 || g.diskscale < 0)
         disp('Error: Diskscale must be a scalar value >= 0.'); return;
 end
 if size(g.colmapcoh,2) ~= 3
 	disp('Error: Colmapcoh must be a colormap (3 columns)'); return;
-end;
+end
 if size(g.colmapcrossf,2) ~= 3
 	disp('Error: Colmapcrossf must be a colormap (3 columns)'); return;
-end;
+end
 if size(g.circfactor,1) ~= size(g.circfactor,2)
 	disp('Error: Circfactor must be a square matrix'); return;
-end;
-if ~iscell(g.coordinates) & ~isempty(g.circfactor)
+end
+if ~iscell(g.coordinates) && ~isempty(g.circfactor)
     if size(g.circfactor,1) ~= size(g.coordinates,1)
         disp('Error: Circfactor must have the same number of rows as the number of rows of coordinates'); return;
-    end;
+    end
     if nbcomponents ~= size(g.coordinates,1)
         disp('Error: The array of selected components must have length nrows of the array coordinates'); return;
-    end;
-end;
+    end
+end
 if ~isstr(g.envylabel)
 	disp('Error: envelope label must be a string'); return;
-end;	
+end	
 if ~isempty(g.envelope)
-	if (size( g.envelope,1 ) ~=2) | (size( g.envelope,2 ) ~= length(times)) | (size( g.envelope,3 ) ~= nbconditions)
+	if (size( g.envelope,1 ) ~=2) || (size( g.envelope,2 ) ~= length(times)) || (size( g.envelope,3 ) ~= nbconditions)
 		fprintf('Error: Enveloppe array does not have the right size (%s), i.e. 2 x %d (number of time points) x %d (number of conditions)\n', int2str(size( g.envelope)), length(times), nbconditions); return;
-	end;
-end;
+	end
+end
 if ~isempty(g.condtitle)
-    if iscell(g.condtitle), g.condtitle = strvcat(g.condtitle{:}); end;
+    if iscell(g.condtitle), g.condtitle = strvcat(g.condtitle{:}); end
 	if size( g.condtitle,1 ) ~= nbconditions
 		fprintf('Error: The number of rows in the title array(%d) must match the number of conditions (%d)\n', size(g.condtitle,1), nbconditions); return;
-	end;
-end;
+	end
+end
 if length(g.plotorder) ~= length(selected)
     error([ 'Error: ''plotorder'' must be the same size as the number of selected components:' int2str(length(selected)) ]);
-end;
+end
 if max(g.plotorder) > max(selected)
     error([ 'Error: ''plotorder'' must be below the number of selected components:' int2str(max(selected)) ]);
-end;
+end
 if ~isempty(g.framefolder)
     [tmp1 tmp2] = mkdir('/', g.framefolder(2:end) );
-    if g.framefolder(end) == '/', g.framefolder(end) = []; end;
-end;  
+    if g.framefolder(end) == '/', g.framefolder(end) = []; end
+end  
 
 % create movie
 % ------------
 disp('A movie is being saved under output.avi (movie parameters shown below):');
-mov = avifile(g.moviename, g.movieopts{:});
+mov = VideoWriter(g.moviename, g.movieopts{:});
+open(mov);
 
 % other variables
 % ---------------
@@ -437,7 +437,7 @@ nwin = size(tmp,2);
 	
 %for index = 1:64
 %	circle(1+index,1, 0.5, g.colormaphsv(index, :));
-%end;
+%end
 
 % optional resqure of all coordinates
 % -----------------------------------
@@ -453,12 +453,12 @@ if ~isempty(g.rt)
 			for indeximage = 1:nwin
 				RTdist(index, indeximage) = length( intersect( find( g.rt{index} > times(indeximage)-timestep ) , ...
                                                                find(  g.rt{index} <= times(indeximage)+timestep ) ) );
-			end;
+			end
 			RTdist(index,:) = RTdist(index,:)/max(RTdist(index,:));
-		end;	
-	end;	
+		end	
+	end	
 	RTdist = RTdist/max(RTdist(:));
-end;	
+end	
 
 figure( 'position', [100, 100, ceil(nbconditions*g.size(1)/4)*4, ceil(g.size(2)/4)*4], ...
         'PaperPositionMode', 'auto', 'papertype', 'A1', 'visible',g.visible); %'paperorientation', 'landscape' );
@@ -472,8 +472,8 @@ if 	strcmpi(g.framesout, 'ppm')
         set(gcf, 'position', [ 0 0 1280  floor(pos(4)/r*fact) ]);
     else
         set(gcf, 'position', [ 0 0 floor(pos(3)/r), floor(pos(4)/r) ]);
-    end;
-end;
+    end
+end
 pos = get(gca,'position');
 q = [pos(1) pos(2) 0 0];
 s = [pos(3) pos(4) pos(3) pos(4)];
@@ -485,14 +485,14 @@ if ~isempty(g.latency)
 	for index = 1:length(g.latency)
 		[tmp tmptimepoint] = min(abs(g.latency(index)-times));
 		alltimepoints = [ alltimepoints tmptimepoint];
-	end;	
+	end	
 else 
 	if isempty(g.frames)
 		alltimepoints = 1:nwin;
 	else
 		alltimepoints = g.frames;
-	end;
-end;
+	end
+end
 
 % make black patch behind figure
 % ------------------------------
@@ -507,18 +507,18 @@ if ~isempty(g.flashes)
 		for index = 1:length(g.flashes)
 			flasheslat(index) = g.flashes{index}{1};
 			flashescol{index} = g.flashes{index}{2};
-		end;
+		end
 	else
 		flasheslat = g.flashes;
 		for index = 1:length(g.flashes)
 			flashescol{index} = [0.5 0.5 0.5];
-		end;
-	end;
+		end
+	end
 	allflashes = [];
 	for index = 1:length(g.flashes)
 		[tmp tmptimepoint] = min(abs(flasheslat(index)-times));
 		allflashes = [ allflashes tmptimepoint];
-	end;
+	end
 	%hpatch = patch([ 0.02 .11 .11 0.02], [0.05 0.05 0.925 0.925], [0.5 0.5 0.5]); lateral
 	%hpatch = patch([ 0 1 1 0], [0 0 1 1], [0.5 0.5 0.5]); full
 	%hpatch = patch([ 0.13 0.84 0.84 0.13 ], [0.92 0.92 1 1], [0.5 0.5 0.5]); %up
@@ -526,7 +526,7 @@ if ~isempty(g.flashes)
 	set(hpatch, 'facecolor', 'w', 'edgecolor', 'none');
 	xlim([0 1]); ylim([0 1]);
 	posf = 0; % used as a counter to preserve color
-end;	
+end	
 
 % draw axes and display images
 % ----------------------------
@@ -548,15 +548,15 @@ for i=1:nbconditions
             dipstruct(index).momxyz = [0 0 0];
             dipstruct(index).component = index;
             dipstruct(index).rv = 0.1;
-        end;
+        end
     else
         for index = 1:size(coords, 1);
             dipstruct(index).posxyz = coords(index,:);
             dipstruct(index).momxyz = [0 0 0];
             dipstruct(index).component = index;
             dipstruct(index).rv = 0.1;
-        end;
-    end;        
+        end
+    end        
     
     dipplot( dipstruct, 'view', g.view, g.dipplotopt{:}); axis off;
     
@@ -584,11 +584,11 @@ for i=1:nbconditions
                 else
                     tmpstruct
                     error('Field not found in tmpstruct');
-                end;
-            end;
-        end;
+                end
+            end
+        end
         delete(htmp);
-    end;
+    end
     %h = plot3(g.coordinates{i}(:, 1),  g.coordinates{i}(:, 2),  g.coordinates{i}(:, 3), 'r.', 'markersize', 30); 
     %dsaf
     xltmp = xlim;
@@ -600,14 +600,14 @@ for i=1:nbconditions
 		h = title(g.condtitle(i,:));
 		if ~isempty(g.condtitleformat)
 			set(h, g.condtitleformat{:} );
-		end;
-	end;	
+		end
+	end	
 
     % this axis is used for the enveloppe but
     % also used to print current time (which is why it is always created
     e(i) = axes('position', [0.1/nbconditions+maxcoordx/nbconditions*(i-1), 0, ...
                 maxcoordx/nbconditions-0.1/nbconditions, ordinate].*s+q,'visible', g.visible);
-end;
+end
 
 % draw captions if necessary
 % --------------------------
@@ -648,7 +648,7 @@ switch lower(g.caption)
       %scalepower(mean(xlimnorm), min(ylimnorm)+0.2, g); % see function at the end
       %axis off;
       %countl = countl + 1;
-  end;
+  end
   switch g.itc, case 'on',
 	  c(countl) = axes('position', [maxcoordx+(1.1-maxcoordx)/2, 0.29 , (1.1-maxcoordx)/2, 0.14].*s+q, ...
 				  'visible', g.visible, 'color', 'none' );
@@ -661,12 +661,12 @@ switch lower(g.caption)
           cbar( [0 1], [0 1], g.colmapcoh(length(g.colmapcoh)/2:end,:), 'vert', 'circle', g);
           ylabel('ITC', 'fontweight', 'bold');
           set(gca, 'ytick', [0 1], 'yticklabel', [0 1], 'xticklabel', [], 'box', 'off');
-      end; 
+      end 
       axis off;
       text(-0.2, 0, '0', 'fontsize', 10);
       text(-0.2, 1, num2str(g.scaleitc,2), 'fontsize', 10);
       text(-0.8, 0.55, 'ITC', 'fontsize', 11, 'fontweight', 'bold');
-  end;
+  end
   switch g.crossf, case 'on',
       c(countl) = axes('position', [maxcoordx+(1.1-maxcoordx)/2, 0.47 , (1.1-maxcoordx)/4, 0.14].*s+q, ...
                   'visible', g.visible, 'color', 'none' );
@@ -679,16 +679,16 @@ switch lower(g.caption)
           cbar( [0 1], [0 1], g.colmapcrossf(length(g.colmapcrossf)/2:end,:), 'vert', '', g);
           ylabel('Cross-Coh' , 'fontweight', 'bold');
           set(gca, 'ytick', [0 1], 'yticklabel', [g.scalecoher(1) g.scalecoher(2)], 'xticklabel', []);      
-      end;
+      end
       switch g.crossfphasespeed, case 'on',
           c(countl) = axes('position', [maxcoordx+(1.1-maxcoordx)/2, 0.69,(1.1-maxcoordx)/2, 0.25 ].*s+q, ...
                       'visible', g.visible );
           countl = countl + 1;
           scalecoher([0.02 1], [0.04 0.96], 5, g); % see function at the end
-      end;
-  end;
+      end
+  end
  case 'off', maxcoordx = 1;
-end;	
+end	
 
 % draw white axis on envelop if flashes DOES NOT WORK WHEN PRINTING IN EPS
 % -------------------------------------
@@ -697,8 +697,8 @@ end;
 %		eflash = axes('position', [0 0 maxcoordx-0.1 ordinate].*s+q, ...
 %					  'xtick', [], 'ytick', [], 'box', 'off', 'visible', g.visible, 'color', 'none'); 
 %		hpatch2 = patch([ 0 1 1 0], [0 0 1 1], [0.5 0.5 0.5]); set(hpatch2, 'facecolor', 'w', 'edgecolor', 'none');
-%	end;
-%end;
+%	end
+%end
 
 % scan time windows
 % -----------------
@@ -718,8 +718,8 @@ for indeximage = alltimepoints
 			set(hpatch, 'facecolor', 'w');
 		else
 			posf = 0;
-		end;
-	end;
+		end
+	end
 	
 	for tmpcond=1:nbconditions
           axes(hh(tmpcond)); set (gcf, 'visible', g.visible);
@@ -730,13 +730,13 @@ for indeximage = alltimepoints
           if ~isempty(g.path3d)
               angle = (indeximage-1)/length(alltimepoints)*360;
               camorbit( cos(angle/180*pi)*g.path3d(1), sin(angle/180*pi)*g.path3d(2) );
-          end;
+          end
           delete( findobj( hh(i), 'tag', 'tmpmov') );
           set (gcf, 'visible', g.visible); 
           if ~isempty(g.title) & i == 1
             t = textsc(g.title,'title');
             set(t,'VerticalAlignment','top', 'fontsize', 15);
-          end;  
+          end  
 	
           % draw correlations
           % -----------------  
@@ -750,14 +750,14 @@ for indeximage = alltimepoints
                           tmppower  = mean(tmpcrossfpow( FREQS, indeximage));
                           tmpangle  = mean(tmpcrossfang( FREQS, indeximage));
                           
-                          if strcmp(lower(g.crossfphaseunit), 'radian'), tmpangle = tmpangle/pi*180; end;
+                          if strcmp(lower(g.crossfphaseunit), 'radian'), tmpangle = tmpangle/pi*180; end
                           %fprintf('%d-%d -> power %1.1f\n', index1, index2, tmppower);
                           drawconnections( g.coordinates{tmpcond}( index1,: ), g.coordinates{tmpcond}( index2,: ), ...
                                            tmppower, tmpangle, g.circfactor(index1, index2), g);
-                      end;	
-                  end;	
-              end;
-          end;
+                      end	
+                  end	
+              end
+          end
 	
           % draw circles
           % ------------     
@@ -768,7 +768,7 @@ for indeximage = alltimepoints
               tmpitc = mean(abs(tmptimef( FREQS, indeximage))); % color is ITC
                                                            %index1, tmpitc, tmppow,
               drawcircle( g.coordinates{tmpcond}( index1,: ), tmppow, tmpitc, g);
-          end;
+          end
 
 
           % draw a bar for time probability
@@ -783,9 +783,9 @@ for indeximage = alltimepoints
                   y1 = g.rthistloc(2);
                   y2 = g.rthistloc(2)-barheight;
                   ll = patch([x1 x1 x2 x2], [y1 y2 y2 y1], g.rthistcolor, 'linewidth', 2*g.resmult);
-              end;
-          end;
-    end;
+              end
+          end
+    end
 
 	% draw the enveloppe of the signal if necessary
 	% ---------------------------------------------
@@ -803,20 +803,20 @@ for indeximage = alltimepoints
             set(gca, 'fontsize', 10*g.resmult);
             if tmpcond == 1
               ylabel(g.envylabel, 'fontweight', 'bold', 'fontsize', 12*g.resmult);
-            end;
+            end
 
             % draw vertical lines if needed
             % -----------------------------
             if ~isempty(g.envvert)
               drawvert(g.envvert, tmpcond,  [minordinate maxordinate]);
-            end;
-          end;
+            end
+          end
           
           % put the time on the ERP axis
           % ----------------------------
           %coordx1 = (g.xlimaxes(2)-g.xlimaxes(1))*0.1 + g.xlimaxes(1);
           %coordy1 = (g.ylimaxes(2)-g.ylimaxes(1))*0.87 + g.ylimaxes(1);
-	end;
+	end
     
     % put the time in the left bottom corner
     % --------------------------------------
@@ -830,12 +830,12 @@ for indeximage = alltimepoints
     setfont(gcf, 'color', [0.99 0.99 0.99]); % warning, for some reasons white does not print
     for index = 1:length(c)
         axes(c(index)); % bring back legend to front
-    end;
+    end
         
 	% save the file for a movie
 	% -------------------------
     movframes = getframe(gcf);
-    mov = addframe(mov,movframes);
+    writeVideo(mov,movframes);
     if strcmpi(g.framesout, 'tiff')
         command2 = sprintf('print -dtiff %s/image%4.4d.tiff', g.framefolder, indeximage);
         eval(command2);
@@ -845,14 +845,14 @@ for indeximage = alltimepoints
     elseif 	strcmpi(g.framesout, 'ppm')
         command2 = sprintf('print -dppm -loose %s/image%4.4d.ppm', g.framefolder, indeximage);
         eval(command2);
-    else % fig format
+    elseif strcmpi(g.framesout, 'fig') % fig format
         hgsave(sprintf('%s/image%4.4d.fig', g.framefolder, indeximage));
         if strcmp(g.visible, 'on')
             drawnow;
-        end;
-    end;
-end;
-mov = close(mov);
+        end
+    end
+end
+close(mov);
 return;
 
 % function to draw circles
@@ -866,26 +866,26 @@ function [tmpsize, tmpcolor, handles] = drawcircle( tmpcoord, tmpersp, tmpitc, g
 		switch lower(g.power)
 			case 'on',  tmpsize = (tmpersp-g.scalepower(1))/(g.scalepower(2)-g.scalepower(1)); % in between 0 and 1 
 			case 'off', tmpsize = 0.5;
-		end;	
+		end	
 		tmpsize = 0.05 *  tmpsize * (g.xlimaxes(2)-g.xlimaxes(1))+0.1;
-        if isnan(tmpitc), tmpitc = 0; end;
+        if isnan(tmpitc), tmpitc = 0; end
         
 		switch lower(g.itc)
          case 'on', 
           indexcolor = length(g.colmapcoh)/2+ceil((tmpitc/g.scaleitc)*length(g.colmapcoh)/2);
           if indexcolor < 1 | indexcolor > length(g.colmapcoh)
               error([ 'ITC ' num2str(tmpitc) 'out of bound, use ''scaleitc'' to increase maxitc' ] );
-          end;
+          end
           tmpcolor = g.colmapcoh( indexcolor,: );
          case 'off', tmpcolor = g.colmapcoh( length(g.colmapcoh)/2,: );
           %case 'on',  tmpcolor = g.colmapcoh( 64-ceil((tmpitc+0.01)*63),: );
           %case 'off', tmpcolor = g.colmapcoh( 64-ceil((0+0.01)*63),: );
-		end;
+		end
 		if tmpersp == 0
 			dashed = 1;
 		else
 			dashed = 0;
-		end;		
+		end		
         
         tmpsize = g.diskscale*tmpsize*100;
 		if tmpsize > 0
@@ -899,7 +899,7 @@ function [tmpsize, tmpcolor, handles] = drawcircle( tmpcoord, tmpersp, tmpitc, g
                 if tmpitc ~= 0
                      colorarray = repmat(reshape(tmpcolor, 1,1,3), [size(zs,1) size(zs,2) 1]);
                 else colorarray = repmat(reshape([1 1 1],  1,1,3), [size(zs,1) size(zs,2) 1]);
-                end;
+                end
                 %figure;gca; hold on;
                 handles = surf(xs, ys, zs, colorarray, 'tag', 'tmpmov', 'EdgeColor','none', 'VertexNormals', normals, ...
                                'backfacelighting', 'lit', 'facelighting', 'phong', 'facecolor', 'interp', 'ambientstrength', 0.3);
@@ -909,11 +909,11 @@ function [tmpsize, tmpcolor, handles] = drawcircle( tmpcoord, tmpersp, tmpitc, g
                     surf(xs, ys, g.factproj(3)*ones(size(zs)), colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
                     surf(xs, g.factproj(2)*ones(size(ys)), zs, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
                     surf(g.factproj(1)*ones(size(xs)), ys, zs, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
-                end;
+                end
             else
                 circle( tmpcoord(1), tmpcoord(2), tmpsize, tmpcolor, 'k', 0, 360, dashed, fastif(dashed, 2, 1));
-            end;
-		end;
+            end
+		end
 return;
 
 % function to draw the lines
@@ -934,19 +934,19 @@ function handles = drawconnections( pos1, pos2, crossfpower, crossfangle, circfa
     % --------------------------------------------------------
     distance = sqrt(sum((pos1-pos2).^2));
     if distance < 0.05*(g.ylimaxes(2) - g.ylimaxes(1)), return;
-    end;
+    end
     
 	crossfpowerabs = abs(crossfpower);
     switch lower(g.crossfcoh)
 		case 'on', tmpthick   = (crossfpowerabs-g.scalecoher(1))/(g.scalecoher(2)-g.scalecoher(1));	% determine thickness = coherence amplitude
 		case 'off', tmpthick  = 0;
-	end;
+	end
 
 	sizec = size( g.colmapcrossf,1 );
 	switch lower(g.crossfphasecolor)
 		case 'on',  tmpcolor  = g.colmapcrossf( sizec/2+ ceil(tmpthick*(sizec/2-1)+1)*sign(crossfpower), : );    % determine color = coherence phase
 		case 'off', tmpcolor  = g.colmapcrossf( sizec/2, : );
-	end;
+	end
 	%tmpthick = 30 * (tmpthick-0.1); % does not vary with the axis zoom
 	tmpthick = 30 * (tmpthick); % adjusted for Nick
 	
@@ -954,8 +954,8 @@ function handles = drawconnections( pos1, pos2, crossfpower, crossfangle, circfa
 	switch lower(g.crossfphasespeed)
 		case 'on',  curphase = (crossfangle+180)/360; % phase from 1 to 0
 		case 'off', curphase = 0.5;
-	end;
-    if crossfpower == 0, tmpthick = 0; end;
+	end
+    if crossfpower == 0, tmpthick = 0; end
     
 	if tmpthick > 0        
         [xc yc zc] = cylinder( g.resmult*tmpthick/300*100, 10);
@@ -983,9 +983,9 @@ function handles = drawconnections( pos1, pos2, crossfpower, crossfangle, circfa
             surf(xc, yc, g.factproj(3)*ones(size(zc)), colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
             surf(xc, g.factproj(2)*ones(size(yc)), zc, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
             surf(g.factproj(1)*ones(size(xc)), yc, zc, colorarray, 'tag', 'tmpmov', 'edgecolor', 'none', 'facelighting', 'none');
-        end;
-        %if round(tmpthick) == 7, asdf; end;
-	end;
+        end
+        %if round(tmpthick) == 7, asdf; end
+	end
 return;
 
 % ***************************************************************************************
@@ -1004,19 +1004,19 @@ function scalepower(posx, posy, g);
 	
 	for i=1:NBCIRCLE
 		[tmpsize] = drawcircle( [posx coordy], powerscale(i), 0, g);
-		if i == 1, tmpsizeori = tmpsize; end;
+		if i == 1, tmpsizeori = tmpsize; end
         
         if i == NBCIRCLE
              tt = text( 1.4*(xlim(2) - xlim(1))+xlim(1), coordy , sprintf('%2.1g dB', powerscale(i)));
 		else tt = text( 1.4*(xlim(2) - xlim(1))+xlim(1), coordy , sprintf('%2.1g', powerscale(i)));
-        end; 
+        end 
         set(tt, 'fontsize', 10*g.resmult, 'horizontalalignment', 'left', 'fontweight', 'bold');
 		coordy = coordy + tmpsize + 0.2*(ylim(2)-ylim(1));
 		
 		%command2 = sprintf('print -depsc -loose scale%d.eps', i);
 		%eval(command2);
 		%cla;
-	end;
+	end
 	set(gca, 'xlim', xlim, 'ylim', ylim-tmpsizeori, 'clipping', 'off', 'fontsize', 10*g.resmult);
 return;
 
@@ -1027,7 +1027,7 @@ function scalecoher(posx, posy, thickness,g);
 	for i=linspace( posy(1), posy(2), 11)
 		superline( [ posx(1) posx(2) ], [ i i ], 'b', thickness*g.resmult, mod(compter/10, 1));  
 		compter = compter + 1;
-	end;	
+	end	
 	%ylabel('Phase-Coh', 'fontweight', 'bold', 'fontsize', 12*g.resmult);
 	set(gca, 'box', 'on', 'ylim', [0 1], 'ytick', [0 0.5 1], ...
 			 'yticklabel', strvcat('-180�','0�','180�'), 'xlim', [0 1], 'xtick', [], 'xticklabel', [], 'fontsize', 10*g.resmult);
@@ -1052,7 +1052,7 @@ function cbar( X, Y, colors, orientation, style, g );
 				hold on;
 				h = fill( [i i i+inc i+inc], [Y(1) Y(2) Y(2) Y(1)], colors(size(colors,1)+1-compter, :)); 
 				set(h, 'edgecolor', 'none');
-			end;
+			end
 		case 'vert'
 			inc = (X(2)-X(1))/NSEGMENTS;
 			for i=linspace(Y(1),Y(2)-(Y(2)-Y(1))/NSEGMENTS,NSEGMENTS);
@@ -1068,16 +1068,16 @@ function cbar( X, Y, colors, orientation, style, g );
 						coordx4 = mid - sin( angle1 )*mid;
 						coordx = real([coordx1 coordx2 coordx3 coordx4]);
 					otherwise,	coordx = [X(1) X(2) X(2) X(1)];
-				end;	
+				end	
                 compter = compter + 1;
 				h = fill( coordx, [i i i+inc i+inc], colors(compter, :));
 				set(h, 'edgecolor', 'none');
-			end;
+			end
 		otherwise
 			disp('Orientation has to be ''vert'' or ''horiz''');
-	end;
+	end
 	set(gca, 'fontsize', 10*g.resmult);
-	if strcmp(style, 'circle'), axis square; end;
+	if strcmp(style, 'circle'), axis square; end
 return;
 
 % draw vertical lines
@@ -1100,7 +1100,7 @@ function drawvert(tmpev, tmpcond, coords);
             
             phandle = plot([ev.time ev.time], coords, ev.style, 'linewidth', 1);
             set(phandle,'color',ev.color);
-        end;
+        end
     else
         % standard envvert
         % ----------------
@@ -1111,10 +1111,10 @@ function drawvert(tmpev, tmpcond, coords);
                 phandle = plot([tmpev{index}{1} tmpev{index}{1}], coords, 'k');
                 if length(tmpev{index}) > 2
                     set(phandle,tmpev{index}{2:end});
-                end;
-            end;
-        end;
-    end;
+                end
+            end
+        end
+    end
     return;
     
 % check the flux 
@@ -1132,5 +1132,5 @@ for indeximage = 1:nwin-7
 	currentphase(index1, index2) = currentphase(index1, index2) + sign(tmpvalue)*speed/3; % 1 cycle in 5 images at max speed
 
 	superline( [ 2 1] , [ 1+indeximage 0.8+indeximage], 5, tmpcolor, mod(currentphase(index1, index2),1));
-end;
+end
 return;
