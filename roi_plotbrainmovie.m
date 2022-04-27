@@ -8,6 +8,8 @@
 %
 % Optional inputs:
 %    'labels'  - [cell] name for each row/column
+%    'axis'    - [axis handle] axis to plot the figure (otherwise creates
+%                a new figure)
 %    'threshold' - [real] only show connections above a given threshold
 %
 % Author: Arnaud Delorme
@@ -52,13 +54,14 @@ linewidth = 1;
 
 g = finputcheck(varargin, { ...
     'labels'      'cell'      { }             {};
+    'axis'        ''          {}              [];
     'threshold'   'real'      {}              0.25;
     }, 'roi_network');
 if isstr(g)
     error(g);
 end
 
-
+% get coordinates
 coords = loadtxt('brain_coords_3d_MNI.txt');
 coords(:,1) = [];
 for indLab = 1:length(g.labels)
@@ -95,6 +98,10 @@ ersp = ersp';
 % get connectivity
 array = mattocell(array);
 dipfitdefs;
+options = {};
+if ~isempty(g.axis)
+    options = { 'figurehandle' g.axis };
+end
 brainmovie3d_causal( ersp, ersp, array, array, 1, 1, [1:length(ersp)], ...
     'coordinates', pos, ...
     'latency', 1, ...
@@ -102,7 +109,8 @@ brainmovie3d_causal( ersp, ersp, array, array, 1, 1, [1:length(ersp)], ...
     'modulateEdgeSize', 'on', ...
     'nodeSizeLimits', [0.05 0.15], ...
     'edgeSizeLimits', [0.05 0.15], ...
-    'caption', false);
+    'caption', false, ...
+    options{:});
 %    'nodeSizeDataRange', [-100 100], ...
 delete(findobj(gcf, 'tag', 'img'))
 set(findobj(gcf, 'tag', 'mesh'), 'visible', 'on')
