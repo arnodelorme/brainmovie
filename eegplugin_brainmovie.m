@@ -31,17 +31,19 @@
 
 function vers = eegplugin_brainmovie(fig, trystrs, catchstrs)
 
-    vers = 'brainmovie0.1b';
+    vers = 'brainmovie0.2';
     
     if nargin < 3
         error('eegplugin_brainmovie requires 3 arguments');
-    end;
+    end
   
     % add folder to path
     % ------------------
     if ~exist('brainmovie')
-        p = which('eegplugin_brainmovie.m');
-        p = p(1:findstr(p,'eegplugin_brainmovie.m')-1);
+        p = fileparts(which('eegplugin_brainmovie.m'));
         addpath( p );
-    end;
-
+    end
+    if ~exist('figure2xhtml')
+        p = fileparts(which('eegplugin_brainmovie.m'));
+        addpath(fullfile(p, 'x3d_version3g'));
+    end
