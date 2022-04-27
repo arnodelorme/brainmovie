@@ -23,9 +23,9 @@ function theme = hlp_getBrainMovieTheme(varargin)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-g = arg_define(varargin, ...
-    arg({'theme'},'dream',{'classic','dream','darkdream','monet','brightclassic','dull_matte'},'BrainMovie Color Theme'));
-
+g = struct(varargin{:});
+% g = arg_define(varargin, ...
+%     arg({'theme'},'dream',{'classic','dream','darkdream','monet','brightclassic','dull_matte'},'BrainMovie Color Theme'));
 
 theme.name = g.theme;
 theme.lightingfcn = @set_lighting;
