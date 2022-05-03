@@ -54,8 +54,9 @@ linewidth = 1;
 
 g = finputcheck(varargin, { ...
     'labels'      'cell'      { }             {};
-    'axis'        ''          {}              [];
     'threshold'   'real'      {}              0.25;
+    'filename'    'string'    {}              '';
+    'brainmovieopt' 'cell'    {}              {}
     }, 'roi_network');
 if isstr(g)
     error(g);
@@ -90,7 +91,7 @@ ersp = {};
 for indLab = 1:length(g.labels)
     ersp{indLab} = array(indLab, indLab);
     if ersp{indLab} == 0 
-        ersp{indLab} = sun(array(indLab, :));
+        ersp{indLab} = sum(array(indLab, :));
     end
 end
 ersp = ersp';
@@ -98,10 +99,6 @@ ersp = ersp';
 % get connectivity
 array = mattocell(array);
 dipfitdefs;
-options = {};
-if ~isempty(g.axis)
-    options = { 'figurehandle' g.axis };
-end
 brainmovie3d_causal( ersp, ersp, array, array, 1, 1, [1:length(ersp)], ...
     'coordinates', pos, ...
     'latency', 1, ...
@@ -110,8 +107,11 @@ brainmovie3d_causal( ersp, ersp, array, array, 1, 1, [1:length(ersp)], ...
     'nodeSizeLimits', [0.05 0.15], ...
     'edgeSizeLimits', [0.05 0.15], ...
     'caption', false, ...
-    options{:});
+    g.brainmovieopt{:});
 %    'nodeSizeDataRange', [-100 100], ...
 delete(findobj(gcf, 'tag', 'img'))
 set(findobj(gcf, 'tag', 'mesh'), 'visible', 'on')
-figure2xhtml('test/example4',gcf)
+if ~isempty(g.filename)
+    figure2xhtml(g.filename,gcf)
+    close
+end
