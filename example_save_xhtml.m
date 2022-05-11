@@ -15,6 +15,7 @@ axis equal
 figure2xhtml('example3',h)
 
 %% Save brain movie
+dipfitdefs;
 coords = loadtxt('brain_coords_3d_MNI.txt');
 pos = [ [ coords{2:4,17} ]; [ coords{2:4,33} ] ]*60; % visual cortex
 pos = [ [ coords{2:4,15} ]; [ coords{2:4,31} ] ]*60; % Frontal eye field
@@ -40,4 +41,5 @@ brainmovie3d_causal( ersps2, ersps2, crossfs_amp2, crossfs_amp2, 1, 1, [1:6], ..
 %    'nodeSizeDataRange', [-100 100], ...
 delete(findobj(gcf, 'tag', 'img'))
 set(findobj(gcf, 'tag', 'mesh'), 'visible', 'on')
-figure2xhtml('example4',gcf)
+options.offset = [ 0 0 0 ]; % viewpoint is important. Put viewpoint to 0,0,200 and shift coordinates?
+figure2xhtml('example4',gcf,options)

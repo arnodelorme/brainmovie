@@ -15,6 +15,8 @@ function [data,loc_body]=XHTMLheader(options)
     data=XMLaddProperty('src','x3dom/x3dom.js',data);
     data=XMLaddString(' ',data);
     [data,loc_body]=XMLaddNode('body',data,loc_html+1);
+    data.node.node(2).property.name = 'style';
+    data.node.node(2).property.value = 'background-color:#000;';
     data=XMLaddNode('h1',data,loc_body+1);
     data=XMLaddString(options.title,data);
     if(options.interactive)

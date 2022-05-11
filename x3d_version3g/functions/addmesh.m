@@ -1,4 +1,4 @@
-function data=addmesh(data,loc_scene,Obj)
+function data=addmesh(data,loc_scene,Obj,offset)
 data.tags.numobjects=data.tags.numobjects+1;
 
 [data,loc_shape]=XMLaddNode('Shape',data,loc_scene+1);
@@ -169,9 +169,9 @@ data=XMLaddProperty('coordIndex',strCoord,data);
 data=XMLaddNode('Coordinate',data,loc_indexfaceset+1);
 V=Obj.Vertices;
 Vr=V;
-Vr(:,1)=Vr(:,1)*data.tags.flip(1);
-Vr(:,2)=Vr(:,2)*data.tags.flip(2);
-Vr(:,3)=Vr(:,3)*data.tags.flip(3);
+Vr(:,1)=Vr(:,1)*data.tags.flip(1)+offset(1);
+Vr(:,2)=Vr(:,2)*data.tags.flip(2)+offset(2);
+Vr(:,3)=Vr(:,3)*data.tags.flip(3)+offset(3);
 str=array2str(Vr);
 data=XMLaddProperty('point',str,data);
 

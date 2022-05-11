@@ -37,6 +37,7 @@ function figure2xhtml(varargin)
 %      options.title : Title of xhtml page, default 'Matlab X3D'
 %      options.interactive : Make mesh/surface objects clickable in xhtml,
 %                          boolean true/false (default false)
+%      options.offset : option to offset [x y z]
 %                           
 %
 % Example, Click-able patch, with face color
@@ -123,7 +124,7 @@ for i=1:nargin
 end
 
 % Process inputs
-defaultoptions=struct('output','both','height',500,'width',500,'headlight',true,'title','Matlab X3D','interactive',false,'embedimages',false);
+defaultoptions=struct('output','both','height',500,'width',500,'headlight',true,'title','Matlab X3D','interactive',false,'embedimages',false,'offset',[0 0 0]);
 if(isempty(options)), options=defaultoptions;
 else
     tags = fieldnames(defaultoptions);
@@ -161,7 +162,7 @@ if(strcmpi(options.output,'xhtml')||strcmpi(options.output,'both'))
     data.tags.filename=filename;
     data.tags.options=options;
     [data,loc_scene]=X3Dheader(data,loc_body,haxis);
-    data=figurex3d(haxis,data,loc_scene);
+    data=figurex3d(haxis,data,loc_scene,options.offset);
     if(options.interactive)
         data=XMLaddNode('script',data,loc_body+1);
         data=XMLaddProperty('type','text/javascript',data);
@@ -179,11 +180,11 @@ if(strcmpi(options.output,'x3d')||strcmpi(options.output,'both'))
     data.tags.filename=filename;
     data.tags.options=options;
     [data,loc_scene]=X3Dheader(data,[],haxis);
-    data=figurex3d(haxis,data,loc_scene);
+    data=figurex3d(haxis,data,loc_scene,options.offset);
     writex3dfile(folder,filename,data);
 end
 
-function data=figurex3d(handle,data,loc_scene)
+function data=figurex3d(handle,data,loc_scene,offset)
 % Get all Childeren of the current axis, and create an X3D xml structure
 % of these 3D objects
 Ch=get(handle,'Children');
@@ -193,18 +194,19 @@ for i=1:length(Ch)
     switch(type)
         case 'axes'
         case 'patch'
-            data=addmesh(data,loc_scene,Obj);
+            data=addmesh(data,loc_scene,Obj,offset);
         case 'line'
             data=addline(data,loc_scene,Obj);
         case 'surface'
             [F,V,Cface,Cedge,E,T]=surf2FV(Obj);
+            V = bsxfun(@minus,V,offset);
             Obj.Faces=F;
             Obj.E=E;
             Obj.Vertices=V;
             Obj.FaceVertexCData=Cface;
             Obj.EdgeVertexCData=Cedge;
             Obj.TextureVertices=T;
-            data=addmesh(data,loc_scene,Obj);
+            data=addmesh(data,loc_scene,Obj,offset);
         case 'image'
             C=Obj.CData;
             xd=[Obj.XData(1) Obj.XData(end)];
@@ -226,7 +228,7 @@ for i=1:length(Ch)
             Obj.FaceVertexCData=Cface;
             Obj.EdgeVertexCData=Cedge;
             Obj.TextureVertices=T;
-            data=addmesh(data,loc_scene,Obj);
+            data=addmesh(data,loc_scene,Obj,offset);
         case 'light'
             data=addlight(data,loc_scene,Obj);
         case 'text'

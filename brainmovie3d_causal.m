@@ -62,8 +62,7 @@
 % 'nodeColorLimits'    - [min max] limits for node color {default full colormap 0 to 1}
 % 'edgeSizeDataRange'  - [min max] data range for edge size {default is min/max of data}
 % 'edgeSizeLimits'     - [min max] limits for edge size {default 0.1 to 1}
-% 'edgeColorDataRange' - [min max] data range for edge color {default is
-% min/max of data}
+% 'edgeColorDataRange' - [min max] data range for edge color {default is min/max of data}
 % 'edgeColorLimits'    - [min max] limits for edge color {default full colormap 0 to 1}
 % 'polarity'  - ['pos'|'posneg'] polarity for ITC and crossf. 'pos' = only positive values
 %               'posneg' = positive and negative values.
@@ -248,6 +247,11 @@ else
     g= [];
 end
 
+if exist('StartSIFT')
+    fprintf(2, 'The upgraded brainmovie3d_causal function of the brainmovie plugin shaddow the same function in SIFT\n');
+    fprintf(2, 'so if you encounter any problem plottig brain movies in SIFT, remove the brainmovie plugin.\n');
+end
+
 if nargin < 7
     SELECTED = 1:size(ALLNODESIZE, 1);
 end
@@ -308,7 +312,7 @@ try, g.project3d;           catch, g.project3d = 'off'; end
 try, g.view;                catch, g.view = [43.6650 30.4420]; end
 try, g.cameraMenu;          catch, g.cameraMenu = false; end                         %% TM: whether or not to show the camera menu (lighting etc).
 try, g.plotNodeLabels;      catch; g.plotNodeLabels = true; end                     %% TM: Whether or not to plot node labels
-try, g.drawmode;            catch, g.drawmode = 'normal'; end                       %% DrawMode for brainmovie ('fast' renders brain more quickly (but poorer) than 'normal'). See Axes Properties for additional details
+try, g.drawmode;            catch, g.drawmode = 'depth'; end                       %% DrawMode for brainmovie ('fast' renders brain more quickly (but poorer) than 'normal'). See Axes Properties for additional details
 try, g.footerPanelPlotMode; catch, g.footerPanelPlotMode = {'all','envelope'}; end %% Plot mode for footer panel display (plot all traces and/or envelope)
 try, g.envColor;            catch, g.envColor = [1 0 0]; end                       %% TM: evelope color
 try, g.makeCompass;         catch, g.makeCompass = false; end                       %% TM: label cardinal directions (posterior,anterior, left, right)
@@ -350,7 +354,7 @@ try, g.nodeColorPolarity;   catch, g.nodeColorPolarity = 'pos'; end
 try, g.edgeColorPolarity;   catch, g.edgeColorPolarity = 'pos'; end
 try, g.centerDataRange;     catch, g.centerDataRange = true; end
 try, g.colorshadow;         catch, g.colorshadow = 1; end
-try, g.nodeColormap;        catch,
+try, g.nodeColormap;        catch
     colormtmp = hot(64);
     colormtmp(end,3) = (colormtmp(end,3)+colormtmp(end-1,3))/2; % white does not come out when the
     g.nodeColormap = colormtmp;                                    % the figure is printed to ppm
@@ -360,7 +364,7 @@ try, g.nodeColormap;        catch,
     g.nodeColormap = [ g.nodeColormap; colormtmp(end:-1:1,:)];
     g.nodeColormap = jet(64);
 end
-try, g.edgeColormap; catch,
+try, g.edgeColormap; catch
     g.edgeColormap = jet(64);
     %g.edgeColormap = hsv(64);
     %g.edgeColormap = [ g.edgeColormap(55:end,:);
@@ -774,7 +778,7 @@ if ismember_bc(lower(g.mode),{'init','init_and_render'})
         % ------------
         g.vars.hBrain(tmpcond) = axes('position', [0+maxcoordx/nbconditions*(tmpcond-1), ordinate, ...
             maxcoordx/nbconditions*0.9, max_ordinate].*s+q ,...
-            'parent',g.figurehandle,'DrawMode',g.drawmode);
+            'parent',g.figurehandle,'SortMethod',g.drawmode);
         gr = [ 0.3 0.3 0.3 ];
         g.dipplotopt = [{ 'coordformat' g.coordformat 'gui', 'off', 'cornermri', 'on', ...
             'color', { gr gr gr gr gr gr gr gr gr } } g.dipplotopt];

@@ -30,7 +30,7 @@ function [data,loc_scene]=X3Dheader(data,loc_body,haxis)
     if(strcmpi(get(haxis,'YDir'),'normal')), flip(2)=1; else flip(2)=-1; end
     if(strcmpi(get(haxis,'ZDir'),'normal')), flip(3)=1; else flip(3)=-1; end
     data.tags.flip=flip;
-    
+
     str=sprintf('%4.4f %4.4f %4.4f',flip(1)*ca(1),flip(2)*ca(2),flip(3)*(ca(3)+da));
     data=XMLaddProperty('position',str,data);
     str=sprintf('%4.4f %4.4f %4.4f %4.4f',0,0,1,0);

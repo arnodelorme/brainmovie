@@ -53,28 +53,45 @@ radius = 0.5;
 linewidth = 1;
 
 g = finputcheck(varargin, { ...
-    'labels'      'cell'      { }             {};
-    'axis'        ''          {}              [];
-    'threshold'   'real'      {}              0.25;
+    'labels'       'cell'      { }             {};
+    'regionfile'   ''          {}             'brain_coords_3d_MNI.txt';
+    'cortex'       ''          {}             [];
+    'atlas'        ''          {}             [];
+    'axis'         ''          {}              [];
+    'threshold'    'real'      {}              0.25;
+    'thresholdper' 'real'      {}              [];
     }, 'roi_network');
 if isstr(g)
     error(g);
 end
 
 % get coordinates
-coords = loadtxt('brain_coords_3d_MNI.txt');
-coords(:,1) = [];
-for indLab = 1:length(g.labels)
-    indCoord = strmatch( lower(g.labels{indLab}), lower(coords(1,:)) );
-    if isempty(indCoord)
-        error('Could not find brain areas')
-    else
-        x(indLab) = coords{2,indCoord};
-        y(indLab) = coords{3,indCoord};
-        z(indLab) = coords{4,indCoord};
+if isempty(g.cortex) || isempty(g.atlas)
+    coords = loadtxt( g.regionfile );
+    coords(:,1) = [];
+    for indLab = 1:length(g.labels)
+        indCoord = strmatch( lower(g.labels{indLab}), lower(coords(1,:)) );
+        if isempty(indCoord)
+            error('Could not find brain areas')
+        else
+            x(indLab) = coords{2,indCoord};
+            y(indLab) = coords{3,indCoord};
+            z(indLab) = coords{4,indCoord};
+        end
+    end
+    pos = [x' y' z']*60;
+else
+    g.labels = { g.atlas.Scouts.Label };
+    for iRegion = 1:length(g.atlas.Scouts)
+        pos(iRegion,:) = mean(g.cortex.Vertices(g.atlas.Scouts(iRegion).Vertices, :));
     end
 end
-pos = [x' y' z']*60;
+
+if ~isempty(g.thresholdper)
+    mx = max(array(:));
+    g.threshold = mx*g.thresholdper;
+end
+array = (array > g.threshold).*array;
 
 % make the matrix symetrical
 for ind1 = 1:size(array,1)
@@ -90,7 +107,7 @@ ersp = {};
 for indLab = 1:length(g.labels)
     ersp{indLab} = array(indLab, indLab);
     if ersp{indLab} == 0 
-        ersp{indLab} = sun(array(indLab, :));
+        ersp{indLab} = sum(array(indLab, :));
     end
 end
 ersp = ersp';
@@ -105,13 +122,16 @@ end
 brainmovie3d_causal( ersp, ersp, array, array, 1, 1, [1:length(ersp)], ...
     'coordinates', pos, ...
     'latency', 1, ...
-    'dipplotopt', {'meshdata' template_models(2).hdmfile 'coordformat' 'mni' ,'meshedgecolor',[0.3 0.3 0.3] 'meshoptions' {'facealpha',0,'edgealpha',1}}, ...
+    'coordformat', 'mni', ...
+    'dipplotopt', {'meshdata' template_models(2).hdmfile ,'meshedgecolor',[0.3 0.3 0.3] 'meshoptions' {'facealpha',0,'edgealpha',1}}, ...
     'modulateEdgeSize', 'on', ...
-    'nodeSizeLimits', [0.05 0.15], ...
-    'edgeSizeLimits', [0.05 0.15], ...
+    'nodeSizeLimits', [0.05 0.10], ...
+    'nodeColorDataRange', [0.5 1], ...
+    'edgeSizeLimits', [0.05 0.25], ...
+    'edgeColorDataRange', [g.threshold 1], ...
     'caption', false, ...
     options{:});
 %    'nodeSizeDataRange', [-100 100], ...
 delete(findobj(gcf, 'tag', 'img'))
 set(findobj(gcf, 'tag', 'mesh'), 'visible', 'on')
-figure2xhtml('test/example4',gcf)
+%figure2xhtml('test/example4',gcf)
