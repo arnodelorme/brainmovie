@@ -60,7 +60,7 @@ g = finputcheck(varargin, { ...
     'axis'         ''          {}              [];
     'threshold'    'real'      {}              0.25;
     'thresholdper' 'real'      {}              [];
-    'filename'    'string'    {}              '';
+    'filename'    'string'    {}              'test';
     'brainmovieopt' 'cell'    {}              {}
     }, 'roi_network');
 if isstr(g)
