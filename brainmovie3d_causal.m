@@ -237,19 +237,15 @@ end
 % create structure for option if necessary
 %-----------------------------------------
 if ~isempty( varargin )
-    for index=1:length(varargin)
-        if iscell(varargin{index})
-            varargin{index} = { varargin{index}};
+    g = [];
+    for iParams = 1:2:length(varargin)
+        if isfield(g, varargin{iParams})
+            warning(sprintf('Duplicate field %s - keeping the last one', varargin{iParams}));
         end
+        g = setfield(g, varargin{iParams}, varargin{iParams+1});
     end
-    g=struct(varargin{:});
 else
     g= [];
-end
-
-if exist('StartSIFT')
-    fprintf(2, 'The upgraded brainmovie3d_causal function of the brainmovie plugin shaddow the same function in SIFT\n');
-    fprintf(2, 'so if you encounter any problem plottig brain movies in SIFT, remove the brainmovie plugin.\n');
 end
 
 if nargin < 7
