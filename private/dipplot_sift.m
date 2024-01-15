@@ -291,7 +291,7 @@ function [outsources, XX, YY, ZZ, XO, YO, ZO] = dipplot( sourcesori, varargin )
                 % misplaced
                 warning on;
             catch,
-                error('Cannot load file using read_fcdc_mri');
+                error('Cannot load file using read_fcdc_mri. Check if the MRI file is available and can be loaded.');
             end
         end
     end
