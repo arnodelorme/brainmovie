@@ -7,10 +7,10 @@
 %     array   - [n x n] square array indicating which cell are connected
 %
 % Optional inputs:
-%    'labels'  - [cell] name for each row/column
-%    'axis'    - [axis handle] axis to plot the figure (otherwise creates
-%                a new figure)
-%    'threshold' - [real] only show connections above a given threshold
+%    'labels'        - [cell] name for each row/column
+%    'axis'          - [axis handle] axis to plot the figure (otherwise creates a new figure)
+%    'threshold'     - [real] only show connections above a given threshold
+%    'thresholdper'  - [real] only show connections above a given percentile, e.g., if value is 0.05, show only the 5% most connected regions 
 %
 % Author: Arnaud Delorme
 
@@ -91,7 +91,7 @@ end
 
 if ~isempty(g.thresholdper)
     mx = max(array(:));
-    g.threshold = mx*g.thresholdper;
+    g.threshold = mx*(1-g.thresholdper);
 end
 array = (array > g.threshold).*array;
 
