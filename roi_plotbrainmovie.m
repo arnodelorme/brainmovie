@@ -10,7 +10,7 @@
 %    'labels'        - [cell] name for each row/column
 %    'axis'          - [axis handle] axis to plot the figure (otherwise creates a new figure)
 %    'threshold'     - [real] only show connections above a given threshold
-%    'thresholdper'  - [real] only show connections above a given percentile, e.g., if value is 0.05, show only the 5% most connected regions 
+%    'thresholdper'  - [real] only show connections for a given percentile, e.g., if value is 0.05, show only the 5% most connected regions 
 %
 % Author: Arnaud Delorme
 
