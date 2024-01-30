@@ -4,6 +4,8 @@ This plugin may only be used from the command line to generate brain movies. Thi
 plugins to generate brain movies.
 
 # Versions
+v1.2 - Change option to show percentile threshold
+
 v1.1 - improved SIFT and ROIconnect compatibility
 
 v1.0 - initial release
