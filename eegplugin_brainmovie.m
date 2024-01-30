@@ -31,7 +31,7 @@
 
 function vers = eegplugin_brainmovie(fig, trystrs, catchstrs)
 
-    vers = 'brainmovie1.1';
+    vers = 'brainmovie1.2';
     
     if nargin < 3
         error('eegplugin_brainmovie requires 3 arguments');
